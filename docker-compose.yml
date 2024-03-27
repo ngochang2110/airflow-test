@@ -1,0 +1,47 @@
+version: "2.1"
+services:
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: mydatabase
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+    ports:
+      - "5434:5432"
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: /bin/bash -c "airflow db upgrade && airflow scheduler"
+    command: scheduler
+    restart: on-failure
+    depends_on:
+      - postgres
+    env_file:
+      - .env
+    ports:
+      - "8794:8793"
+    # volumes:
+    #   - ./dags:/opt/airflow/dags
+    #   - ./airflow-logs:/opt/airflow/logs
+    #   - ./scripts:/opt/airflow/scripts
+
+  webserver:
+    hostname: webserver
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: ./scripts/airflow-entrypoint.sh
+    command: webserver
+    restart: always
+    depends_on:
+      - postgres
+    env_file:
+      - .env
+    # volumes:
+    #   - ./dags:/opt/airflow/dags
+    #   - ./airflow-logs:/opt/airflow/logs
+    #   - ./scripts:/opt/airflow/scripts
+    ports:
+      - "8080:8080"
